@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, Switch, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useStore, Transaction, QuickAction } from '../store/useStore';
 import { colors } from '../constants/colors';
 import { categories } from '../constants/categories';
@@ -195,26 +195,33 @@ export default function Dashboard() {
         </TouchableOpacity>
       </View>
 
-      <View style={styles.quickActionsRow}>
-        {quickActions.map((action) => (
-          <TouchableOpacity 
-            key={action.id} 
-            style={styles.quickActionBtn} 
-            onPress={() => handleQuickAction(action.amount, action.category, action.paymentMethod)}
-            activeOpacity={0.7}
+      <View style={styles.quickActionsRowContainer}>
+        {quickActions.length > 0 ? (
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false} 
+            contentContainerStyle={styles.quickActionsScroll}
           >
-            <View style={styles.quickActionContent}>
-              <Text style={styles.quickActionText} numberOfLines={1}>{action.name}</Text>
-              <Text style={styles.quickActionSubtext}>-${action.amount.toFixed(2)}</Text>
-            </View>
-            {action.paymentMethod === 'CARD' ? (
-              <CreditCard color={colors.textSecondary} size={16} />
-            ) : (
-              <Banknote color={colors.textSecondary} size={16} />
-            )}
-          </TouchableOpacity>
-        ))}
-        {quickActions.length === 0 && (
+            {quickActions.map((action) => (
+              <TouchableOpacity 
+                key={action.id} 
+                style={styles.quickActionCard} 
+                onPress={() => handleQuickAction(action.amount, action.category, action.paymentMethod)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.quickActionContent}>
+                  <Text style={styles.quickActionText} numberOfLines={1}>{action.name}</Text>
+                  <Text style={styles.quickActionSubtext}>-${action.amount.toFixed(2)}</Text>
+                </View>
+                {action.paymentMethod === 'CARD' ? (
+                  <CreditCard color={colors.textSecondary} size={16} />
+                ) : (
+                  <Banknote color={colors.textSecondary} size={16} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        ) : (
           <Text style={styles.emptyText}>No hay acciones rápidas. Toca el engrane para agregar una.</Text>
         )}
       </View>
@@ -270,158 +277,170 @@ export default function Dashboard() {
 
       {/* MODAL NUEVA TRANSACCIÓN */}
       <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <TouchableOpacity onPress={() => setTxType('EXPENSE')} style={[styles.typeBtn, txType === 'EXPENSE' && styles.typeBtnActiveExpense]}>
-                <Text style={styles.typeBtnText}>Gasto</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setTxType('INCOME')} style={[styles.typeBtn, txType === 'INCOME' && styles.typeBtnActiveIncome]}>
-                <Text style={styles.typeBtnText}>Ingreso</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.inputAmount}
-              placeholder="$ 0.00"
-              placeholderTextColor={colors.textSecondary}
-              keyboardType="decimal-pad"
-              autoFocus
-              value={amount}
-              onChangeText={setAmount}
-            />
-
-            {txType === 'EXPENSE' && (
-              <View style={styles.categoriesGrid}>
-                {categories.map((c) => (
-                  <TouchableOpacity
-                    key={c.id}
-                    style={[styles.categoryBtn, selectedCategory === c.name && styles.categoryBtnActive]}
-                    onPress={() => setSelectedCategory(c.name)}
-                  >
-                    <Text style={[styles.categoryBtnText, selectedCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.keyboardAvoidingView}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                <View style={styles.modalHeader}>
+                  <TouchableOpacity onPress={() => setTxType('EXPENSE')} style={[styles.typeBtn, txType === 'EXPENSE' && styles.typeBtnActiveExpense]}>
+                    <Text style={styles.typeBtnText}>Gasto</Text>
                   </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                  <TouchableOpacity onPress={() => setTxType('INCOME')} style={[styles.typeBtn, txType === 'INCOME' && styles.typeBtnActiveIncome]}>
+                    <Text style={styles.typeBtnText}>Ingreso</Text>
+                  </TouchableOpacity>
+                </View>
 
-            <View style={styles.paymentMethodRow}>
-              <Text style={styles.methodLabel}>Tarjeta</Text>
-              <Switch value={isCard} onValueChange={setIsCard} trackColor={{ true: colors.primary, false: colors.border }} />
-            </View>
+                <TextInput
+                  style={styles.inputAmount}
+                  placeholder="$ 0.00"
+                  placeholderTextColor={colors.textSecondary}
+                  keyboardType="decimal-pad"
+                  autoFocus
+                  value={amount}
+                  onChangeText={setAmount}
+                />
 
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setModalVisible(false); setAmount(''); setIsCard(false); }}>
-                <Text style={styles.cancelBtnText}>Cancelar</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                <Text style={styles.saveBtnText}>Guardar</Text>
-              </TouchableOpacity>
+                {txType === 'EXPENSE' && (
+                  <View style={styles.categoriesGrid}>
+                    {categories.map((c) => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={[styles.categoryBtn, selectedCategory === c.name && styles.categoryBtnActive]}
+                        onPress={() => setSelectedCategory(c.name)}
+                      >
+                        <Text style={[styles.categoryBtnText, selectedCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+
+                <View style={styles.paymentMethodRow}>
+                  <Text style={styles.methodLabel}>Tarjeta</Text>
+                  <Switch value={isCard} onValueChange={setIsCard} trackColor={{ true: colors.primary, false: colors.border }} />
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={() => { setModalVisible(false); setAmount(''); setIsCard(false); }}>
+                    <Text style={styles.cancelBtnText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                    <Text style={styles.saveBtnText}>Guardar</Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* MODAL PERSONALIZAR ACCIONES RÁPIDAS */}
       <Modal visible={quickActionsModalVisible} animationType="slide" transparent>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            {isAddingQuickAction ? (
-              <View>
-                <Text style={styles.modalTitle}>Nueva Acción Rápida</Text>
-                
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Nombre (ej. Cafecito, Almuerzo)"
-                  placeholderTextColor={colors.textSecondary}
-                  value={newActionName}
-                  onChangeText={setNewActionName}
-                  maxLength={15}
-                />
-                
-                <TextInput
-                  style={styles.inputField}
-                  placeholder="Monto (ej. 3.50)"
-                  placeholderTextColor={colors.textSecondary}
-                  keyboardType="decimal-pad"
-                  value={newActionAmount}
-                  onChangeText={setNewActionAmount}
-                />
-
-                <Text style={styles.fieldLabel}>Categoría</Text>
-                <View style={styles.categoriesGrid}>
-                  {categories.map((c) => (
-                    <TouchableOpacity
-                      key={c.id}
-                      style={[styles.categoryBtn, newActionCategory === c.name && styles.categoryBtnActive]}
-                      onPress={() => setNewActionCategory(c.name)}
-                    >
-                      <Text style={[styles.categoryBtnText, newActionCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <View style={styles.paymentMethodRow}>
-                  <Text style={styles.methodLabel}>Pago con Tarjeta</Text>
-                  <Switch 
-                    value={newActionIsCard} 
-                    onValueChange={setNewActionIsCard} 
-                    trackColor={{ true: colors.primary, false: colors.border }} 
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.keyboardAvoidingView}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              {isAddingQuickAction ? (
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 20 }}>
+                  <Text style={styles.modalTitle}>Nueva Acción Rápida</Text>
+                  
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Nombre (ej. Cafecito, Almuerzo)"
+                    placeholderTextColor={colors.textSecondary}
+                    value={newActionName}
+                    onChangeText={setNewActionName}
+                    maxLength={15}
                   />
-                </View>
+                  
+                  <TextInput
+                    style={styles.inputField}
+                    placeholder="Monto (ej. 3.50)"
+                    placeholderTextColor={colors.textSecondary}
+                    keyboardType="decimal-pad"
+                    value={newActionAmount}
+                    onChangeText={setNewActionAmount}
+                  />
 
-                <View style={styles.modalActions}>
-                  <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsAddingQuickAction(false)}>
-                    <Text style={styles.cancelBtnText}>Atrás</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.saveBtn} onPress={handleAddQuickAction}>
-                    <Text style={styles.saveBtnText}>Guardar</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <View style={{ maxHeight: 420 }}>
-                <Text style={styles.modalTitle}>Personalizar Acciones</Text>
-                
-                <FlatList
-                  data={quickActions}
-                  keyExtractor={(item) => item.id.toString()}
-                  style={{ marginBottom: 20 }}
-                  showsVerticalScrollIndicator={false}
-                  renderItem={({ item }) => (
-                    <View style={styles.manageActionItem}>
-                      <View>
-                        <Text style={styles.manageActionName}>{item.name}</Text>
-                        <Text style={styles.manageActionDetails}>
-                          ${item.amount.toFixed(2)} • {item.category} • {item.paymentMethod === 'CARD' ? 'Tarjeta' : 'Efectivo'}
-                        </Text>
-                      </View>
-                      <TouchableOpacity 
-                        onPress={() => handleDeleteQuickAction(item.id)} 
-                        style={styles.deleteActionBtn}
-                        activeOpacity={0.7}
+                  <Text style={styles.fieldLabel}>Categoría</Text>
+                  <View style={styles.categoriesGrid}>
+                    {categories.map((c) => (
+                      <TouchableOpacity
+                        key={c.id}
+                        style={[styles.categoryBtn, newActionCategory === c.name && styles.categoryBtnActive]}
+                        onPress={() => setNewActionCategory(c.name)}
                       >
-                        <Trash2 color={colors.danger} size={18} />
+                        <Text style={[styles.categoryBtnText, newActionCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
                       </TouchableOpacity>
-                    </View>
-                  )}
-                  ListEmptyComponent={
-                    <Text style={styles.emptyText}>No hay acciones rápidas. ¡Agrega una!</Text>
-                  }
-                />
+                    ))}
+                  </View>
 
-                <TouchableOpacity style={styles.addActionButton} onPress={() => setIsAddingQuickAction(true)} activeOpacity={0.8}>
-                  <Plus color="#FFF" size={20} />
-                  <Text style={styles.addActionButtonText}>Agregar Acción</Text>
-                </TouchableOpacity>
+                  <View style={styles.paymentMethodRow}>
+                    <Text style={styles.methodLabel}>Pago con Tarjeta</Text>
+                    <Switch 
+                      value={newActionIsCard} 
+                      onValueChange={setNewActionIsCard} 
+                      trackColor={{ true: colors.primary, false: colors.border }} 
+                    />
+                  </View>
 
-                <TouchableOpacity style={styles.closeBtn} onPress={() => setQuickActionsModalVisible(false)} activeOpacity={0.7}>
-                  <Text style={styles.closeBtnText}>Cerrar</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+                  <View style={styles.modalActions}>
+                    <TouchableOpacity style={styles.cancelBtn} onPress={() => setIsAddingQuickAction(false)}>
+                      <Text style={styles.cancelBtnText}>Atrás</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.saveBtn} onPress={handleAddQuickAction}>
+                      <Text style={styles.saveBtnText}>Guardar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+              ) : (
+                <View style={{ maxHeight: 420 }}>
+                  <Text style={styles.modalTitle}>Personalizar Acciones</Text>
+                  
+                  <FlatList
+                    data={quickActions}
+                    keyExtractor={(item) => item.id.toString()}
+                    style={{ marginBottom: 20 }}
+                    showsVerticalScrollIndicator={false}
+                    renderItem={({ item }) => (
+                      <View style={styles.manageActionItem}>
+                        <View>
+                          <Text style={styles.manageActionName}>{item.name}</Text>
+                          <Text style={styles.manageActionDetails}>
+                            ${item.amount.toFixed(2)} • {item.category} • {item.paymentMethod === 'CARD' ? 'Tarjeta' : 'Efectivo'}
+                          </Text>
+                        </View>
+                        <TouchableOpacity 
+                          onPress={() => handleDeleteQuickAction(item.id)} 
+                          style={styles.deleteActionBtn}
+                          activeOpacity={0.7}
+                        >
+                          <Trash2 color={colors.danger} size={18} />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                    ListEmptyComponent={
+                      <Text style={styles.emptyText}>No hay acciones rápidas. ¡Agrega una!</Text>
+                    }
+                  />
+
+                  <TouchableOpacity style={styles.addActionButton} onPress={() => setIsAddingQuickAction(true)} activeOpacity={0.8}>
+                    <Plus color="#FFF" size={20} />
+                    <Text style={styles.addActionButtonText}>Agregar Acción</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={styles.closeBtn} onPress={() => setQuickActionsModalVisible(false)} activeOpacity={0.7}>
+                    <Text style={styles.closeBtnText}>Cerrar</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );
@@ -436,19 +455,27 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.textSecondary, fontSize: 14, fontWeight: 'bold', textTransform: 'uppercase' },
   sectionTitleMargin: { color: colors.textSecondary, fontSize: 14, fontWeight: 'bold', marginBottom: 15, marginTop: 15, textTransform: 'uppercase' },
   settingsBtn: { padding: 4 },
-  quickActionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 },
-  quickActionBtn: { 
-    minWidth: '47%', 
-    flexGrow: 1, 
+  
+  // Horizontal Quick Actions styles
+  quickActionsRowContainer: { marginBottom: 10, height: 85 },
+  quickActionsScroll: { gap: 10, paddingRight: 20, alignItems: 'center' },
+  quickActionCard: { 
+    width: 140, 
+    height: 70,
     backgroundColor: colors.card, 
     padding: 15, 
     borderRadius: 12, 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    alignItems: 'center' 
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2
   },
+  
   quickActionContent: { gap: 2 },
-  quickActionText: { color: colors.text, fontSize: 14, fontWeight: '500', maxWidth: 100 },
+  quickActionText: { color: colors.text, fontSize: 14, fontWeight: '500', maxWidth: 80 },
   quickActionSubtext: { color: colors.textSecondary, fontSize: 12 },
   txCard: { backgroundColor: colors.card, padding: 15, borderRadius: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   txInfo: { gap: 4 },
@@ -461,6 +488,9 @@ const styles = StyleSheet.create({
   txMethodText: { color: colors.textSecondary, fontSize: 10 },
   deleteTxBtn: { padding: 8, borderRadius: 8, backgroundColor: '#FF453A1A' },
   fab: { position: 'absolute', bottom: 30, right: 30, backgroundColor: colors.primary, width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center', elevation: 5, shadowColor: colors.primary, shadowOpacity: 0.3, shadowRadius: 10 },
+  
+  // Modal container & KeyboardAvoidingView styles
+  keyboardAvoidingView: { flex: 1 },
   modalContainer: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
   modalContent: { backgroundColor: colors.card, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40 },
   modalHeader: { flexDirection: 'row', gap: 10, marginBottom: 20 },
