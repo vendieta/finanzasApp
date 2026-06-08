@@ -21,19 +21,33 @@ export interface QuickAction {
   paymentMethod: PaymentMethod;
 }
 
+export interface Category {
+  id: number;
+  name: string;
+  icon?: string;
+}
+
 interface AppState {
   balance: number;
   transactions: Transaction[];
   initialBalance: number;
   quickActions: QuickAction[];
+  categories: Category[];
   
-  setInitialData: (initialBalance: number, transactions: Transaction[], quickActions: QuickAction[]) => void;
+  setInitialData: (
+    initialBalance: number, 
+    transactions: Transaction[], 
+    quickActions: QuickAction[], 
+    categories: Category[]
+  ) => void;
   addTransaction: (tx: Transaction) => void;
   deleteTransaction: (id: number) => void;
   updateInitialBalance: (newBalance: number) => void;
   setQuickActions: (actions: QuickAction[]) => void;
   addQuickAction: (action: QuickAction) => void;
   deleteQuickAction: (id: number) => void;
+  addCategory: (category: Category) => void;
+  deleteCategory: (id: number) => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -41,13 +55,14 @@ export const useStore = create<AppState>((set) => ({
   transactions: [],
   initialBalance: 0,
   quickActions: [],
+  categories: [],
 
-  setInitialData: (initialBalance, transactions, quickActions) => {
+  setInitialData: (initialBalance, transactions, quickActions, categories) => {
     const calculatedBalance = transactions.reduce((acc, tx) => {
       return acc + (tx.type === 'INCOME' ? tx.amount : -tx.amount);
     }, initialBalance);
 
-    set({ initialBalance, transactions, balance: calculatedBalance, quickActions });
+    set({ initialBalance, transactions, balance: calculatedBalance, quickActions, categories });
   },
 
   addTransaction: (tx) => set((state) => {
@@ -84,5 +99,13 @@ export const useStore = create<AppState>((set) => ({
 
   deleteQuickAction: (id) => set((state) => ({
     quickActions: state.quickActions.filter((a) => a.id !== id)
+  })),
+
+  addCategory: (category) => set((state) => ({
+    categories: [...state.categories, category]
+  })),
+
+  deleteCategory: (id) => set((state) => ({
+    categories: state.categories.filter((c) => c.id !== id)
   }))
 }));

@@ -1,7 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, TextInput, Switch, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useStore, Transaction, QuickAction } from '../store/useStore';
+import { useStore, Transaction, QuickAction, Category } from '../store/useStore';
 import { colors } from '../constants/colors';
-import { categories } from '../constants/categories';
 import { Plus, CreditCard, Banknote, Trash2, Settings } from 'lucide-react-native';
 import { useState, useEffect } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -12,11 +11,13 @@ export default function Dashboard() {
     balance, 
     transactions, 
     quickActions, 
+    categories,
     setInitialData, 
     addTransaction, 
     deleteTransaction,
     addQuickAction,
-    deleteQuickAction
+    deleteQuickAction,
+    addCategory
   } = useStore();
   const db = useSQLiteContext();
   const insets = useSafeAreaInsets();
@@ -25,7 +26,7 @@ export default function Dashboard() {
   const [modalVisible, setModalVisible] = useState(false);
   const [txType, setTxType] = useState<'EXPENSE' | 'INCOME'>('EXPENSE');
   const [amount, setAmount] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(categories[0].name);
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [isCard, setIsCard] = useState(false);
 
   // Customize Quick Actions Modal States
@@ -35,8 +36,12 @@ export default function Dashboard() {
   // Add Quick Action Form States
   const [newActionName, setNewActionName] = useState('');
   const [newActionAmount, setNewActionAmount] = useState('');
-  const [newActionCategory, setNewActionCategory] = useState(categories[0].name);
+  const [newActionCategory, setNewActionCategory] = useState('');
   const [newActionIsCard, setNewActionIsCard] = useState(false);
+
+  // Category addition modal states
+  const [addCategoryModalVisible, setAddCategoryModalVisible] = useState(false);
+  const [newCatInputName, setNewCatInputName] = useState('');
 
   // Load data on mount
   useEffect(() => {
@@ -44,11 +49,60 @@ export default function Dashboard() {
       const txs = await db.getAllAsync<Transaction>('SELECT * FROM transactions ORDER BY date DESC LIMIT 50;');
       const settings = await db.getAllAsync<{key: string, value: string}>('SELECT * FROM settings WHERE key = "initial_balance";');
       const qas = await db.getAllAsync<QuickAction>('SELECT * FROM quick_actions;');
+      const cats = await db.getAllAsync<Category>('SELECT * FROM categories;');
       const initBalance = settings.length > 0 ? parseFloat(settings[0].value) : 0;
-      setInitialData(initBalance, txs, qas);
+      setInitialData(initBalance, txs, qas, cats);
+
+      if (cats.length > 0) {
+        setSelectedCategory(cats[0].name);
+        setNewActionCategory(cats[0].name);
+      }
     }
     loadData();
   }, []);
+
+  // Sync selected values if they are empty and categories are loaded
+  useEffect(() => {
+    if (categories.length > 0) {
+      if (!selectedCategory) setSelectedCategory(categories[0].name);
+      if (!newActionCategory) setNewActionCategory(categories[0].name);
+    }
+  }, [categories]);
+
+  // Dynamic Category insertion helper
+  const handleSaveCategory = async () => {
+    if (!newCatInputName.trim()) {
+      Alert.alert('Faltan datos', 'Por favor ingresa un nombre para la categoría.');
+      return;
+    }
+    const formatted = newCatInputName.trim().charAt(0).toUpperCase() + newCatInputName.trim().slice(1);
+    
+    if (categories.some(c => c.name.toLowerCase() === formatted.toLowerCase())) {
+      Alert.alert('Error', 'Esta categoría ya existe.');
+      return;
+    }
+
+    try {
+      const result = await db.runAsync(
+        'INSERT INTO categories (name, icon) VALUES (?, ?);',
+        [formatted, 'tag']
+      );
+
+      const newCat = {
+        id: result.lastInsertRowId,
+        name: formatted,
+        icon: 'tag'
+      };
+
+      addCategory(newCat);
+      setSelectedCategory(formatted);
+      setNewActionCategory(formatted);
+      setAddCategoryModalVisible(false);
+      setNewCatInputName('');
+    } catch (e) {
+      Alert.alert('Error', 'No se pudo guardar la categoría.');
+    }
+  };
 
   // Save new manual transaction
   const handleSave = async () => {
@@ -70,7 +124,7 @@ export default function Dashboard() {
     setModalVisible(false);
     setAmount('');
     setIsCard(false);
-    setSelectedCategory(categories[0].name);
+    setSelectedCategory(categories.length > 0 ? categories[0].name : '');
   };
 
   // Perform quick action expense insertion
@@ -155,7 +209,7 @@ export default function Dashboard() {
       // Clear fields
       setNewActionName('');
       setNewActionAmount('');
-      setNewActionCategory(categories[0].name);
+      setNewActionCategory(categories.length > 0 ? categories[0].name : '');
       setNewActionIsCard(false);
       setIsAddingQuickAction(false);
     } catch (e) {
@@ -314,6 +368,13 @@ export default function Dashboard() {
                         <Text style={[styles.categoryBtnText, selectedCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
                       </TouchableOpacity>
                     ))}
+                    <TouchableOpacity
+                      style={[styles.categoryBtn, { borderColor: colors.primary, borderStyle: 'dashed' }]}
+                      onPress={() => setAddCategoryModalVisible(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.categoryBtnText, { color: colors.primary, fontWeight: 'bold' }]}>+ Nueva</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -377,6 +438,13 @@ export default function Dashboard() {
                         <Text style={[styles.categoryBtnText, newActionCategory === c.name && styles.categoryBtnTextActive]}>{c.name}</Text>
                       </TouchableOpacity>
                     ))}
+                    <TouchableOpacity
+                      style={[styles.categoryBtn, { borderColor: colors.primary, borderStyle: 'dashed' }]}
+                      onPress={() => setAddCategoryModalVisible(true)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.categoryBtnText, { color: colors.primary, fontWeight: 'bold' }]}>+ Nueva</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={styles.paymentMethodRow}>
@@ -438,6 +506,47 @@ export default function Dashboard() {
                   </TouchableOpacity>
                 </View>
               )}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* MODAL NUEVA CATEGORÍA */}
+      <Modal visible={addCategoryModalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.keyboardAvoidingView}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Nueva Categoría</Text>
+              
+              <TextInput
+                style={styles.inputField}
+                placeholder="Nombre de la categoría (ej. Regalos)"
+                placeholderTextColor={colors.textSecondary}
+                value={newCatInputName}
+                onChangeText={setNewCatInputName}
+                maxLength={20}
+                autoFocus
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity 
+                  style={styles.cancelBtn} 
+                  onPress={() => { setAddCategoryModalVisible(false); setNewCatInputName(''); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.cancelBtnText}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.saveBtn} 
+                  onPress={handleSaveCategory}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.saveBtnText}>Guardar</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </KeyboardAvoidingView>

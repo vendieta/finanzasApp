@@ -36,6 +36,14 @@ export const migrateDbIfNeeded = async (db: SQLiteDatabase) => {
     );
   `);
 
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      icon TEXT
+    );
+  `);
+
   const existingQuickActions = await db.getAllAsync<{ id: number }>('SELECT id FROM quick_actions LIMIT 1;');
   if (existingQuickActions.length === 0) {
     await db.runAsync(
@@ -44,5 +52,13 @@ export const migrateDbIfNeeded = async (db: SQLiteDatabase) => {
     await db.runAsync(
       "INSERT INTO quick_actions (name, amount, category, paymentMethod) VALUES ('Café', 3.00, 'Antojos', 'CASH');"
     );
+  }
+
+  const existingCategories = await db.getAllAsync<{ id: number }>('SELECT id FROM categories LIMIT 1;');
+  if (existingCategories.length === 0) {
+    await db.runAsync("INSERT INTO categories (name, icon) VALUES ('Amigos', 'users');");
+    await db.runAsync("INSERT INTO categories (name, icon) VALUES ('Comida', 'utensils');");
+    await db.runAsync("INSERT INTO categories (name, icon) VALUES ('Transporte', 'bus');");
+    await db.runAsync("INSERT INTO categories (name, icon) VALUES ('Antojos', 'coffee');");
   }
 };
