@@ -1,16 +1,18 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert, TextInput } from 'react-native';
 import { colors } from '../constants/colors';
 import { useStore, Transaction } from '../store/useStore';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { Download, RefreshCcw } from 'lucide-react-native';
 import { useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function SettingsScreen() {
   const { initialBalance, transactions, updateInitialBalance } = useStore();
   const db = useSQLiteContext();
   const [balanceInput, setBalanceInput] = useState(initialBalance.toString());
+  const insets = useSafeAreaInsets();
 
   const handleExport = async () => {
     try {
@@ -42,7 +44,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top + 15 : 20 }]}>
       <Text style={styles.title}>Ajustes</Text>
 
       <View style={styles.section}>

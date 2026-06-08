@@ -25,4 +25,24 @@ export const migrateDbIfNeeded = async (db: SQLiteDatabase) => {
   await db.execAsync(`
     INSERT OR IGNORE INTO settings (key, value) VALUES ('initial_balance', '0');
   `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS quick_actions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      amount REAL NOT NULL,
+      category TEXT NOT NULL,
+      paymentMethod TEXT CHECK(paymentMethod IN ('CASH', 'CARD')) NOT NULL
+    );
+  `);
+
+  const existingQuickActions = await db.getAllAsync<{ id: number }>('SELECT id FROM quick_actions LIMIT 1;');
+  if (existingQuickActions.length === 0) {
+    await db.runAsync(
+      "INSERT INTO quick_actions (name, amount, category, paymentMethod) VALUES ('Pasaje', 1.50, 'Transporte', 'CASH');"
+    );
+    await db.runAsync(
+      "INSERT INTO quick_actions (name, amount, category, paymentMethod) VALUES ('Café', 3.00, 'Antojos', 'CASH');"
+    );
+  }
 };

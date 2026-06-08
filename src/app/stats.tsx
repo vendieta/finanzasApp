@@ -3,10 +3,12 @@ import { useStore } from '../store/useStore';
 import { colors } from '../constants/colors';
 import { PieChart } from 'react-native-gifted-charts';
 import { useMemo, useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function Stats() {
   const { transactions } = useStore();
   const [filter, setFilter] = useState<'MONTH' | 'WEEK'>('MONTH');
+  const insets = useSafeAreaInsets();
 
   const chartData = useMemo(() => {
     const expenses = transactions.filter(t => t.type === 'EXPENSE');
@@ -29,7 +31,7 @@ export default function Stats() {
   }, [transactions, filter]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top > 0 ? insets.top + 15 : 20 }]}>
       <Text style={styles.title}>Estadísticas</Text>
 
       <View style={styles.chartContainer}>
